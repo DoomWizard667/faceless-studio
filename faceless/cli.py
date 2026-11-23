@@ -133,10 +133,11 @@ def cmd_video(args):
             voice_path,
             segments,
             _prepare_images(Path(args.images) if args.images else Path("/nonexistent"),
-                            out_dir / f"images_{label}", sentences, target, args.style),
+                            out_dir / f"images_{label}", segments["sentences"], target, args.style),
             target,
             output,
             captions_on=not args.no_captions,
+            style=args.style,
         )
     print(f"Terminé : {out_dir}")
 
@@ -176,6 +177,7 @@ def cmd_pipeline(args):
             target,
             output,
             captions_on=not args.no_captions,
+            style=args.style,
         )
     print(f"[4/4] Terminé : {out_dir}")
 

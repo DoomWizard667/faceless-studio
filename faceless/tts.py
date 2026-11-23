@@ -28,8 +28,7 @@ def _sentence_slots(text: str) -> list:
     return [(s, len(_tokens(s))) for s in sentences]
 
 
-def _build_segments(text: str, words: list) -> dict:
-    caption_chunks = _chunk_captions(words)
+def _assign_sentences(text: str, words: list) -> list:
     sentence_segments = []
     index = 0
     for sentence, expected in _sentence_slots(text):
@@ -47,7 +46,25 @@ def _build_segments(text: str, words: list) -> dict:
             sentence_segments[-1] = (prev[0], words[-1][1], prev[2] + " " + remainder)
         else:
             sentence_segments.append((words[index][0], words[-1][1], remainder))
-    return {"captions": caption_chunks, "sentences": sentence_segments}
+    return sentence_segments
+
+
+def _build_segments(text: str, words: list) -> dict:
+    return {
+        "captions": _chunk_captions(words),
+        "caption_words": list(words),
+        "sentences": _assign_sentences(text, words),
+    }
+
+
+def _estimate_words(audio_duration: float, text: str) -> list:
+    total_chars = max(len(text), 1)
+    words = []
+    for match in re.finditer(r"\S+", text):
+        start = audio_duration * match.start() / total_chars
+        end = audio_duration * match.end() / total_chars
+        words.append((start, max(end, start + 0.08), match.group(0).strip(".,!?…;:")))
+    return words
 
 
 def _estimate_segments(audio_path: Path, text: str) -> dict:
@@ -55,21 +72,12 @@ def _estimate_segments(audio_path: Path, text: str) -> dict:
 
     with AudioFileClip(str(audio_path)) as clip:
         duration = float(clip.duration)
-    sentence_slots = _sentence_slots(text)
-    total_words = max(sum(count for _, count in sentence_slots), 1)
-    cursor = 0.0
-    sentence_segments = []
-    for sentence, count in sentence_slots:
-        span = duration * count / total_words
-        sentence_segments.append((cursor, cursor + span, sentence))
-        cursor += span
-    word_start = 0.0
-    words = []
-    for i in range(0, total_words, WORD_GROUP_SIZE):
-        span = duration * min(WORD_GROUP_SIZE, total_words - i) / total_words
-        words.append((word_start, word_start + span, "…"))
-        word_start += span
-    return {"captions": _chunk_captions(words), "sentences": sentence_segments}
+    words = _estimate_words(duration, text)
+    return {
+        "captions": _chunk_captions(words),
+        "caption_words": words,
+        "sentences": _assign_sentences(text, words),
+    }
 
 
 async def _edge_speak(text: str, voice: str, out_path: Path) -> list:
@@ -82,7 +90,9 @@ async def _edge_speak(text: str, voice: str, out_path: Path) -> list:
             elif chunk["type"] == "WordBoundary":
                 start = chunk["offset"] / 1e7
                 end = (chunk["offset"] + chunk["duration"]) / 1e7
-                words.append((start, end, chunk["text"]))
+                cleaned = chunk["text"].strip()
+                if cleaned:
+                    words.append((start, end, cleaned))
     return words
 
 

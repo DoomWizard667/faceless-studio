@@ -1,17 +1,44 @@
 from __future__ import annotations
 
-import textwrap
+import math
+import random
 from pathlib import Path
 
+import numpy as np
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 from .config import FONT_PATH
 
 PALETTES = {
-    "dark_cinematic": [(10, 12, 20), (32, 28, 44), (218, 116, 62)],
-    "office_revanche": [(8, 16, 22), (18, 48, 62), (240, 160, 80)],
-    "liminal_night": [(6, 8, 12), (26, 34, 40), (170, 200, 220)],
-    "ember": [(16, 10, 8), (52, 28, 16), (255, 140, 60)],
+    "dark_cinematic": {
+        "stops": [(6, 8, 14), (24, 22, 38), (48, 34, 30)],
+        "accent": (222, 130, 70),
+        "glow": (255, 150, 80),
+    },
+    "office_revanche": {
+        "stops": [(6, 12, 18), (20, 44, 56), (210, 128, 66)],
+        "accent": (240, 160, 80),
+        "glow": (120, 200, 230),
+    },
+    "liminal_night": {
+        "stops": [(4, 6, 10), (20, 28, 34), (150, 180, 200)],
+        "accent": (170, 205, 225),
+        "glow": (190, 220, 235),
+    },
+    "ember": {
+        "stops": [(14, 8, 6), (46, 24, 14), (250, 120, 50)],
+        "accent": (255, 140, 60),
+        "glow": (255, 170, 90),
+    },
+}
+
+MOTIFS = ["door", "corridor", "figure", "window", "house", "stairs"]
+
+STYLE_MOTIFS = {
+    "dark_cinematic": ["door", "figure", "corridor", "window", "house", "stairs", "door", "corridor"],
+    "office_revanche": ["city", "corridor", "window", "city", "door", "window", "corridor", "city"],
+    "liminal_night": ["corridor", "door", "stairs", "corridor", "door", "stairs", "corridor", "door"],
+    "ember": ["door", "figure", "window", "stairs", "door", "figure", "window", "stairs"],
 }
 
 
@@ -21,19 +48,254 @@ def _load_font(size: int) -> ImageFont.FreeTypeFont:
     return ImageFont.load_default(size)
 
 
-def _vignette(size: tuple, strength: int = 170) -> Image.Image:
+def _gradient(size: tuple, stops: list) -> Image.Image:
+    width, height = size
+    ys = np.linspace(0.0, 1.0, height)
+    ctrl = np.linspace(0.0, 1.0, len(stops))
+    array = np.zeros((height, width, 3), dtype=np.float32)
+    for c in range(3):
+        column = np.interp(
+            ys,
+            ctrl,
+            np.array([s[c] for s in stops], dtype=np.float32),
+        )
+        array[:, :, c] = column[:, None]
+    return Image.fromarray(array.astype(np.uint8), "RGB")
+
+
+def _grain(image: Image.Image, amount: float = 9.0) -> Image.Image:
+    array = np.asarray(image).astype(np.int16)
+    noise = np.random.normal(0, amount, array.shape[:2])
+    array[..., :3] += noise[..., None].astype(np.int16)
+    return Image.fromarray(np.clip(array, 0, 255).astype(np.uint8), image.mode)
+
+
+def _vignette(image: Image.Image, strength: int = 165) -> Image.Image:
+    size = image.size
     mask = Image.new("L", size, 0)
     draw = ImageDraw.Draw(mask)
-    margin_x = int(size[0] * 0.18)
-    margin_y = int(size[1] * 0.12)
+    margin_x = int(size[0] * 0.25)
+    margin_y = int(size[1] * 0.18)
     draw.ellipse(
         (-margin_x, -margin_y, size[0] + margin_x, size[1] + margin_y),
         fill=255,
     )
-    mask = mask.filter(ImageFilter.GaussianBlur(radius=min(size) // 6))
-    black = Image.new("RGBA", size, (0, 0, 0, strength))
-    black.putalpha(Image.eval(mask, lambda v: strength * (255 - v) // 255))
-    return black
+    mask = mask.filter(ImageFilter.GaussianBlur(radius=min(size) // 5))
+    dark = Image.new("RGBA", size, (2, 2, 4, strength))
+    alpha = Image.eval(mask, lambda v: strength * (255 - v) // 255)
+    dark.putalpha(alpha)
+    return Image.alpha_composite(image.convert("RGBA"), dark)
+
+
+def _glow(image: Image.Image, color: tuple, center: tuple, radius: int, strength: int = 90) -> Image.Image:
+    layer = Image.new("RGBA", image.size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(layer)
+    draw.ellipse(
+        (center[0] - radius, center[1] - radius, center[0] + radius, center[1] + radius),
+        fill=color + (strength,),
+    )
+    layer = layer.filter(ImageFilter.GaussianBlur(radius=radius // 2))
+    return Image.alpha_composite(image, layer)
+
+
+def _bokeh(image: Image.Image, accent: tuple, rng: random.Random, count: int = 14) -> Image.Image:
+    layer = Image.new("RGBA", image.size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(layer)
+    width, height = image.size
+    radius_ref = min(width, height)
+    for _ in range(count):
+        radius = rng.randint(radius_ref // 90, radius_ref // 22)
+        x = rng.randint(0, width)
+        y = rng.randint(0, int(height * 0.75))
+        alpha = rng.randint(18, 60)
+        draw.ellipse(
+            (x - radius, y - radius, x + radius, y + radius),
+            fill=accent + (alpha,),
+        )
+    layer = layer.filter(ImageFilter.GaussianBlur(radius=radius_ref // 120))
+    return Image.alpha_composite(image, layer)
+
+
+def _light_shaft(image: Image.Image, accent: tuple, rng: random.Random, strength: int = 46) -> Image.Image:
+    width, height = image.size
+    layer = Image.new("RGBA", image.size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(layer)
+    top_x = rng.randint(int(width * 0.25), int(width * 0.75))
+    lean = rng.randint(-int(width * 0.18), int(width * 0.18))
+    base = int(width * 0.05)
+    draw.polygon(
+        [
+            (top_x - base, -10),
+            (top_x + base, -10),
+            (top_x + lean + base * 3, height),
+            (top_x + lean - base * 3, height),
+        ],
+        fill=accent + (strength,),
+    )
+    layer = layer.filter(ImageFilter.GaussianBlur(radius=int(width * 0.03)))
+    return Image.alpha_composite(image, layer)
+
+
+def _motif_layer(image: Image.Image, motif: str, accent: tuple, rng: random.Random) -> Image.Image:
+    width, height = image.size
+    layer = Image.new("RGBA", image.size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(layer)
+    dark = (4, 4, 8, 235)
+    horizon = int(height * 0.25)
+    floor = int(height * 0.93)
+
+    if motif == "door":
+        door_w = int(width * 0.30)
+        door_h = int(height * 0.25)
+        x0 = (width - door_w) // 2
+        y0 = floor - door_h
+        glow = Image.new("RGBA", image.size, (0, 0, 0, 0))
+        gdraw = ImageDraw.Draw(glow)
+        gdraw.rectangle(
+            (int(x0 * 0.8), floor - int(height * 0.25), int((x0 + door_w) * 1.2), floor),
+            fill=accent + (54,),
+        )
+        glow = glow.filter(ImageFilter.GaussianBlur(radius=int(width * 0.03)))
+        layer = Image.alpha_composite(glow, layer)
+        draw = ImageDraw.Draw(layer)
+        draw.rounded_rectangle(
+            (x0, y0, x0 + door_w, floor),
+            radius=int(door_w * 0.06),
+            fill=(14, 15, 22, 252),
+            outline=(190, 195, 205, 110),
+            width=max(int(width * 0.0022), 2),
+        )
+        gap_h = int(height * 0.005)
+        draw.rectangle((x0 + 4, floor - gap_h, x0 + door_w - 4, floor + 2), fill=accent + (200,))
+        mid_h = int(height * 0.004)
+        draw.rectangle((x0 + 4, y0 + int(door_h * 0.55), x0 + door_w - 4, y0 + int(door_h * 0.55) + mid_h), fill=accent + (60,))
+
+    elif motif == "corridor":
+        cx = width // 2
+        frames = 5
+        for i in range(frames, 0, -1):
+            scale = i / frames
+            shrink = scale * 0.5
+            fw = int(width * shrink)
+            fh = int((floor - horizon) * shrink)
+            x0 = cx - fw // 2
+            y1 = int(floor - (floor - horizon) * (1 - (1 - scale) * 0.25))
+            draw.rectangle(
+                (x0, y1 - fh, x0 + fw, y1),
+                outline=(150, 152, 160, 150),
+                width=max(int(width * 0.0022), 2),
+            )
+            if i == 1:
+                draw.rectangle((x0 + 6, y1 - fh + 6, x0 + fw - 6, y1), fill=accent + (26,))
+        depth = Image.new("RGBA", image.size, (0, 0, 0, 0))
+        ddraw = ImageDraw.Draw(depth)
+        ddraw.ellipse(
+            (cx - width * 0.05, floor - height * 0.05, cx + width * 0.05, floor),
+            fill=accent + (54,),
+        )
+        depth = depth.filter(ImageFilter.GaussianBlur(radius=int(width * 0.03)))
+        layer = Image.alpha_composite(depth, layer)
+        draw = ImageDraw.Draw(layer)
+
+    elif motif == "figure":
+        cx = int(width * rng.uniform(0.38, 0.62))
+        head_r = int(width * 0.035)
+        head_y = floor - int(height * 0.25)
+        body_top = head_y + head_r
+        body_h = int(height * 0.22)
+        draw.ellipse(
+            (cx - head_r, head_y - head_r, cx + head_r, head_y + head_r),
+            fill=dark,
+        )
+        draw.polygon(
+            [
+                (cx - head_r * 1.9, floor),
+                (cx + head_r * 1.9, floor),
+                (cx + head_r * 0.8, body_top),
+                (cx - head_r * 0.8, body_top),
+            ],
+            fill=dark,
+        )
+        rim = Image.new("RGBA", image.size, (0, 0, 0, 0))
+        rim_draw = ImageDraw.Draw(rim)
+        rim_draw.ellipse(
+            (cx - head_r - 3, head_y - head_r - 3, cx + head_r + 3, head_y + head_r + 3),
+            outline=accent + (120,),
+            width=3,
+        )
+        layer = Image.alpha_composite(rim, layer)
+
+    elif motif == "window":
+        win_w = int(width * 0.34)
+        win_h = int(height * 0.30)
+        x0 = (width - win_w) // 2
+        y0 = horizon
+        draw.rectangle((x0, y0, x0 + win_w, y0 + win_h), fill=(210, 215, 225, 60))
+        bar = max(3, int(width * 0.006))
+        draw.rectangle((x0, y0 + win_h // 2 - bar, x0 + win_w, y0 + win_h // 2 + bar), fill=dark)
+        draw.rectangle((x0 + win_w // 2 - bar, y0, x0 + win_w // 2 + bar, y0 + win_h), fill=dark)
+        draw.rectangle((x0, y0, x0 + win_w, y0 + win_h), outline=dark, width=bar * 2)
+
+    elif motif == "house":
+        house_w = int(width * 0.25)
+        house_h = int(height * 0.25)
+        x0 = (width - house_w) // 2
+        y0 = floor - house_h
+        draw.polygon(
+            [
+                (x0 - int(house_w * 0.1), y0),
+                (x0 + house_w + int(house_w * 0.1), y0),
+                (x0 + house_w // 2, y0 - int(house_h * 0.45)),
+            ],
+            fill=dark,
+        )
+        draw.rectangle((x0, y0, x0 + house_w, floor), fill=dark)
+        win_w2 = int(house_w * 0.18)
+        wx = x0 + house_w // 2 - win_w2 // 2
+        wy = y0 + int(house_h * 0.25)
+        draw.rectangle((wx, wy, wx + win_w2, wy + int(win_w2 * 1.4)), fill=accent + (170,))
+        ground = Image.new("RGBA", image.size, (0, 0, 0, 0))
+        gdraw = ImageDraw.Draw(ground)
+        gdraw.rectangle((0, floor, width, height), fill=(2, 2, 4, 245))
+        layer = Image.alpha_composite(ground, layer)
+
+    elif motif == "stairs":
+        steps = 6
+        step_h = int((floor - horizon) / steps)
+        for i in range(steps):
+            y1 = floor - i * step_h
+            inset = int(width * 0.25 * (i / steps) * 0.6)
+            draw.rectangle(
+                (inset, y1 - step_h, width - inset, y1),
+                outline=(8, 8, 14, 220),
+                width=max(int(width * 0.004), 2),
+            )
+        top_glow = Image.new("RGBA", image.size, (0, 0, 0, 0))
+        tdraw = ImageDraw.Draw(top_glow)
+        tdraw.ellipse(
+            (width // 2 - width * 0.25, horizon - width * 0.1, width // 2 + width * 0.25, horizon + width * 0.25),
+            fill=accent + (50,),
+        )
+        top_glow = top_glow.filter(ImageFilter.GaussianBlur(radius=int(width * 0.04)))
+        layer = Image.alpha_composite(top_glow, layer)
+
+    elif motif == "city":
+        rng_sk = random.Random(7)
+        x = -int(width * 0.05)
+        while x < width:
+            bw = rng_sk.randint(int(width * 0.05), int(width * 0.13))
+            bh = rng_sk.randint(int(height * 0.25), int(height * 0.55))
+            draw.rectangle((x, floor - bh, x + bw, floor), fill=dark)
+            for wy in range(floor - bh + int(height * 0.03), floor - int(height * 0.03), int(height * 0.045)):
+                for wx in range(x + int(width * 0.012), x + bw - int(width * 0.012), int(width * 0.03)):
+                    if rng_sk.random() < 0.55:
+                        lw = max(2, int(width * 0.004))
+                        draw.rectangle(
+                            (wx, wy, wx + lw, wy + int(height * 0.012)),
+                            fill=accent + (rng_sk.randint(90, 190),),
+                        )
+            x += bw + int(width * 0.012)
+    return layer
 
 
 def render_placeholder(
@@ -46,63 +308,63 @@ def render_placeholder(
 ) -> Path:
     out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
+    rng = random.Random(f"{index}-{style}")
     palette = PALETTES.get(style, PALETTES["dark_cinematic"])
-    width, height = size
-    gradient = Image.new("RGBA", size)
-    draw = ImageDraw.Draw(gradient)
-    top, middle, accent = palette
-    for y in range(height):
-        ratio = y / height
-        if ratio < 0.55:
-            k = ratio / 0.55
-            color = tuple(int(top[i] + (middle[i] - top[i]) * k) for i in range(3))
-        else:
-            k = (ratio - 0.55) / 0.45
-            color = tuple(int(middle[i] + (top[i] - middle[i]) * k) for i in range(3))
-        draw.line([(0, y), (width, y)], fill=color + (255,))
+    motifs = STYLE_MOTIFS.get(style, MOTIFS)
+    motif = motifs[(index - 1) % len(motifs)]
 
-    glow_radius = int(min(size) * 0.25)
-    glow = Image.new("RGBA", size, (0, 0, 0, 0))
-    glow_draw = ImageDraw.Draw(glow)
-    glow_draw.ellipse(
-        (
-            int(width * 0.25),
-            int(height * 0.25),
-            int(width * 0.25) + 2 * glow_radius,
-            int(height * 0.25) + 2 * glow_radius,
-        ),
-        fill=accent + (54,),
-    )
-    glow = glow.filter(ImageFilter.GaussianBlur(radius=max(glow_radius // 2, 1)))
-    image = Image.alpha_composite(gradient.convert("RGBA"), glow)
-    image = Image.alpha_composite(image, _vignette(size))
+    image = _gradient(size, palette["stops"]).convert("RGBA")
+    image = _glow(image, palette["glow"], (int(size[0] * rng.uniform(0.3, 0.7)), int(size[1] * rng.uniform(0.28, 0.5))), int(min(size) * 0.30), strength=110)
+    if motif != "city":
+        image = _light_shaft(image, palette["accent"], rng)
+    motif_layer = _motif_layer(image, motif, palette["accent"], rng)
+    image = Image.alpha_composite(image, motif_layer)
+    image = _bokeh(image, palette["accent"], rng)
+    image = _grain(image)
+    image = _vignette(image)
 
     caption = text.strip().strip(".")
-    if len(caption) > 90:
-        caption = caption[:90].rsplit(" ", 1)[0] + "…"
-    label_font = _load_font(max(min(width, height) // 18, 18))
-    text_font = _load_font(max(min(width, height) // 11, 24))
+    if len(caption) > 80:
+        caption = caption[:80].rsplit(" ", 1)[0] + "…"
     overlay = Image.new("RGBA", size, (0, 0, 0, 0))
     overlay_draw = ImageDraw.Draw(overlay)
-    label = f"{index:02d} / {total:02d}"
-    label_width = overlay_draw.textlength(label, font=label_font)
+    width, height = size
+    font = _load_font(max(int(min(size) * 0.052), 20))
+    words = caption.split()
+    lines = []
+    current = ""
+    for word in words:
+        candidate = (current + " " + word).strip()
+        if overlay_draw.textlength(candidate, font=font) <= width * 0.8:
+            current = candidate
+        else:
+            if current:
+                lines.append(current)
+            current = word
+    if current:
+        lines.append(current)
+    mast_font = _load_font(max(int(min(size) * 0.024), 14))
+    mast = "L'HISTOIRE — SCÈNE {}/{}".format(index, total)
+    mast_w = overlay_draw.textlength(mast, font=mast_font)
     overlay_draw.text(
-        ((width - label_width) / 2, int(height * 0.30)),
-        label,
-        font=label_font,
-        fill=accent + (255,),
+        ((width - mast_w) / 2, int(height * 0.25)),
+        mast,
+        font=mast_font,
+        fill=palette["accent"] + (230,),
     )
-    wrapped = textwrap.wrap(caption, width=28)
-    text_y = int(height * 0.5)
-    for line in wrapped[:5]:
-        line_width = overlay_draw.textlength(line, font=text_font)
+    line_h = int(min(size) * 0.052 * 1.3)
+    text_y = int(height * 0.25) + int(min(size) * 0.05)
+    for line in lines[:4]:
+        line_width = overlay_draw.textlength(line, font=font)
         overlay_draw.text(
             ((width - line_width) / 2, text_y),
             line,
-            font=text_font,
-            fill=(235, 232, 226, 235),
+            font=font,
+            fill=(240, 238, 233, 245),
+            stroke_width=2,
+            stroke_fill=(0, 0, 0, 200),
         )
-        text_y += int(text_font.size * 1.35)
+        text_y += line_h
     image = Image.alpha_composite(image, overlay)
     image.convert("RGB").save(out_path, quality=95)
     return out_path

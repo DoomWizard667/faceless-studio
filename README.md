@@ -61,11 +61,19 @@ python -m faceless.cli video --file out/<slug>/story.txt --images mon_dossier --
 
 Les images sont automatiquement recadrées (cover) aux deux formats.
 
+## Rendu visuel inclus
+
+Chaque vidéo est composée automatiquement : décors procéduraux (dégradés cinéma, halos lumineux,
+silhouettes, portes, couloirs, skyline, bokeh, grain film, vignette), effet Ken Burns avec pan
+latéral alterné, fondus enchaînés entre scènes, sous-titres karaoké avec mot actif surligné
+(style CapCut) et barre de progression.
+
 ## Personnalisation
 
 - **Voix** : `--voice-name fr-FR-VivienneMultilingualNeural` (liste complète : `edge-tts --list-voices`), ou ElevenLabs via `.env`
 - **Style visuel** : `--style dark_cinematic | office_revanche | liminal_night | ember`
 - **Sous-titres** : désactivables avec `--no-captions`
+- **Steps suivants conseillés** : remplacer les placeholders par des images Midjourney (voir ci-dessus) pour un rendu pro
 
 ## Workflow recommandé (chaîne)
 

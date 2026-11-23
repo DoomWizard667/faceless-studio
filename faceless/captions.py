@@ -5,13 +5,63 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
-from .config import FONT_PATH
+from .config import FONT_PATH, WORD_GROUP_SIZE
 
 
 def _load_font(size: int) -> ImageFont.FreeTypeFont:
     if FONT_PATH.exists():
         return ImageFont.truetype(str(FONT_PATH), size)
     return ImageFont.load_default(size)
+
+
+def _layout_lines(words: list, font, max_width) -> list:
+    lines = []
+    current = []
+    probe = Image.new("RGBA", (10, 10))
+    draw = ImageDraw.Draw(probe)
+    space = draw.textlength(" ", font=font)
+    current_w = 0.0
+    for word in words:
+        w = draw.textlength(word, font=font)
+        candidate = current_w + (space if current else 0) + w
+        if current and candidate > max_width:
+            lines.append(current)
+            current = [word]
+            current_w = w
+        else:
+            current.append(word)
+            current_w = candidate
+    if current:
+        lines.append(current)
+    return lines
+
+
+def _draw_words(
+    lines: list,
+    highlight: int,
+    font,
+    max_width: int,
+    line_height: int,
+    fill=(255, 255, 255, 255),
+    accent=(255, 190, 90, 255),
+    stroke=(0, 0, 0, 255),
+) -> Image.Image:
+    flat = [w for line in lines for w in line]
+    active = set(flat[highlight]) if 0 <= highlight < len(flat) else set()
+    height = len(lines) * line_height + 40
+    image = Image.new("RGBA", (max_width, height), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(image)
+    y = 20
+    for line in lines:
+        total = sum(draw.textlength(w, font=font) for w in line)
+        total += draw.textlength(" ", font=font) * (len(line) - 1)
+        x = (max_width - total) / 2
+        for word in line:
+            color = accent if word in active else fill
+            draw.text((x, y), word, font=font, fill=color, stroke_width=6, stroke_fill=stroke)
+            x += draw.textlength(word, font=font) + draw.textlength(" ", font=font)
+        y += line_height
+    return image
 
 
 def render_caption_png(
@@ -26,31 +76,62 @@ def render_caption_png(
     out_path.parent.mkdir(parents=True, exist_ok=True)
     font = _load_font(font_size)
     uppercase = text.strip().upper()
-    probe = Image.new("RGBA", (10, 10))
-    draw = ImageDraw.Draw(probe)
-    candidate = 10
-    for candidate in range(min(26, max(len(uppercase), 12)), 7, -1):
-        wrapped = textwrap.wrap(uppercase, candidate)
-        if not wrapped:
-            break
-        widest = max(draw.textlength(line, font=font) for line in wrapped)
-        if widest <= max_width - 60:
-            break
-    wrapped = textwrap.wrap(uppercase, candidate) or [uppercase]
-    line_height = int(font_size * 1.22)
-    image = Image.new("RGBA", (max_width, len(wrapped) * line_height + 30), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(image)
-    y = 15
-    for line in wrapped:
-        width = draw.textlength(line, font=font)
-        draw.text(
-            ((max_width - width) / 2, y),
-            line,
-            font=font,
-            fill=fill,
-            stroke_width=6,
-            stroke_fill=stroke,
-        )
-        y += line_height
+    wrapped = textwrap.wrap(uppercase, 26) or [uppercase]
+    line_height = int(font_size * 1.24)
+    image = _draw_words(
+        [line.split() for line in wrapped],
+        -1,
+        font,
+        max_width,
+        line_height,
+        fill=fill + (255,),
+        stroke=stroke + (255,),
+    )
     image.save(out_path)
     return out_path
+
+
+def render_karaoke_variants(
+    words: list,
+    out_dir: str | Path,
+    max_width: int,
+    font_size: int = 72,
+    accent=(255, 190, 90),
+) -> list:
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    font = _load_font(font_size)
+    display = [w[2].strip().upper() for w in words]
+    lines = _layout_lines(display, font, max_width)
+    line_height = int(font_size * 1.24)
+    variants = []
+    for i, w in enumerate(words):
+        image = _draw_words(
+            lines,
+            i,
+            font,
+            max_width,
+            line_height,
+            fill=(250, 250, 250, 255),
+            accent=accent + (255,),
+            stroke=(8, 8, 10, 255),
+        )
+        path = out_dir / f"karaoke_{i:03d}.png"
+        image.save(path)
+        variants.append(path)
+    return variants
+
+
+def chunk_words_by_time(words: list, group_size: int = WORD_GROUP_SIZE) -> list:
+    chunks = []
+    for i in range(0, len(words), group_size):
+        group = words[i : i + group_size]
+        chunks.append(
+            {
+                "start": group[0][0],
+                "end": group[-1][1],
+                "text": " ".join(w[2] for w in group),
+                "words": group,
+            }
+        )
+    return chunks
