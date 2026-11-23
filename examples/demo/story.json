@@ -1,0 +1,22 @@
+{
+  "topic": "L'ascenseur de mon immeuble s'arrête au sous-sol. Il n'y a pas de sous-sol",
+  "genre": "horreur",
+  "title": "L'ascenseur de mon immeuble s'arrête au sous-sol. Il n'y ...",
+  "sentences": [
+    "Personne ne me croit quand je raconte ce que j'ai vu la nuit du 13.",
+    "Le soir où j'ai décidé de vérifier par moi-même, la maison était silencieuse.",
+    "Chaque nuit, la même chose se reproduisait, à quelques minutes près.",
+    "J'ai trouvé quelque chose qui n'aurait jamais dû exister. Et ça m'avait laissé un mot.",
+    "Tout a commencé la nuit du 13, au sous-sol du bureau. Rien ne laissait présager ce qui allait suivre.",
+    "Et je n'ai plus jamais reparlé de cette histoire. Jusqu'à aujourd'hui."
+  ],
+  "text": "Personne ne me croit quand je raconte ce que j'ai vu la nuit du 13. Le soir où j'ai décidé de vérifier par moi-même, la maison était silencieuse. Chaque nuit, la même chose se reproduisait, à quelques minutes près. J'ai trouvé quelque chose qui n'aurait jamais dû exister. Et ça m'avait laissé un mot. Tout a commencé la nuit du 13, au sous-sol du bureau. Rien ne laissait présager ce qui allait suivre. Et je n'ai plus jamais reparlé de cette histoire. Jusqu'à aujourd'hui.",
+  "midjourney_prompts": [
+    "1. dark moody cinematic still, single warm light source, deep shadows, film grain, muted desaturated palette, mysterious atmosphere, 35mm photography, shallow depth of field -- Personne ne me croit quand je raconte ce que j'ai vu la nuit du 13 --ar 9:16 --style raw --v 7",
+    "2. dark moody cinematic still, single warm light source, deep shadows, film grain, muted desaturated palette, mysterious atmosphere, 35mm photography, shallow depth of field -- Le soir où j'ai décidé de vérifier par moi-même, la maison était silencieuse --ar 9:16 --style raw --v 7",
+    "3. dark moody cinematic still, single warm light source, deep shadows, film grain, muted desaturated palette, mysterious atmosphere, 35mm photography, shallow depth of field -- Chaque nuit, la même chose se reproduisait, à quelques minutes près --ar 9:16 --style raw --v 7",
+    "4. dark moody cinematic still, single warm light source, deep shadows, film grain, muted desaturated palette, mysterious atmosphere, 35mm photography, shallow depth of field -- J'ai trouvé quelque chose qui n'aurait jamais dû exister. Et ça m'avait laissé un mot --ar 9:16 --style raw --v 7",
+    "5. dark moody cinematic still, single warm light source, deep shadows, film grain, muted desaturated palette, mysterious atmosphere, 35mm photography, shallow depth of field -- Tout a commencé la nuit du 13, au sous-sol du bureau. Rien ne laissait présager ce qui --ar 9:16 --style raw --v 7",
+    "6. dark moody cinematic still, single warm light source, deep shadows, film grain, muted desaturated palette, mysterious atmosphere, 35mm photography, shallow depth of field -- Et je n'ai plus jamais reparlé de cette histoire. Jusqu'à aujourd'hui --ar 9:16 --style raw --v 7"
+  ]
+}
