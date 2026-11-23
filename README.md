@@ -87,12 +87,14 @@ python -m faceless.cli video --file out/<slug>/story.txt --images mon_dossier --
 
 Les images sont automatiquement recadrées (cover) aux deux formats.
 
-## Rendu visuel inclus
+## Rendu visuel et sonore inclus
 
 Chaque vidéo est composée automatiquement : décors procéduraux (dégradés cinéma, halos lumineux,
 silhouettes, portes, couloirs, skyline, bokeh, grain film, vignette), effet Ken Burns avec pan
-latéral alterné, fondus enchaînés entre scènes, sous-titres karaoké avec mot actif surligné
-(style CapCut) et barre de progression.
+latéral alterné, **transitions variées** (fondu, zoom punch, slide), **particules flottantes**, sous-titres
+karaoké avec mot actif surligné et **pop d'échelle** à chaque mot (style CapCut), barre de progression,
+et **design sonore synthétisé** : ambiance sombre continue, whoosh à chaque transition de scène,
+boom d'impact à l'ouverture et à la chute (désactivable avec `--no-sfx`).
 
 ### 5. Auditer des vidéos déjà rendues
 

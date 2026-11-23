@@ -138,6 +138,7 @@ def cmd_video(args):
             output,
             captions_on=not args.no_captions,
             style=args.style,
+            sfx_on=not args.no_sfx,
         )
     print(f"Terminé : {out_dir}")
 
@@ -178,6 +179,7 @@ def cmd_pipeline(args):
             output,
             captions_on=not args.no_captions,
             style=args.style,
+            sfx_on=not args.no_sfx,
         )
     print(f"[4/4] Terminé : {out_dir}")
 
@@ -203,6 +205,7 @@ def cmd_agents(args):
             "voice_name": args.voice_name,
             "images_dir": args.images,
             "no_captions": args.no_captions,
+            "no_sfx": args.no_sfx,
         },
         out_dir,
     )
@@ -248,6 +251,7 @@ def build_parser() -> argparse.ArgumentParser:
     video_p.add_argument("--style", default=DEFAULT_STYLE)
     video_p.add_argument("--formats", default="v", help="v=9:16, h=16:9, vh=les deux")
     video_p.add_argument("--no-captions", action="store_true")
+    video_p.add_argument("--no-sfx", action="store_true", help="Désactiver le design sonore")
     video_p.add_argument("--outdir", default="out")
     video_p.set_defaults(func=cmd_video)
 
@@ -261,6 +265,7 @@ def build_parser() -> argparse.ArgumentParser:
     pipe.add_argument("--style", default=DEFAULT_STYLE)
     pipe.add_argument("--formats", default="vh")
     pipe.add_argument("--no-captions", action="store_true")
+    pipe.add_argument("--no-sfx", action="store_true", help="Désactiver le design sonore")
     pipe.add_argument("--outdir", default="out")
     pipe.set_defaults(func=cmd_pipeline)
 
@@ -274,6 +279,7 @@ def build_parser() -> argparse.ArgumentParser:
     agents_p.add_argument("--style", default=DEFAULT_STYLE)
     agents_p.add_argument("--formats", default="vh")
     agents_p.add_argument("--no-captions", action="store_true")
+    agents_p.add_argument("--no-sfx", action="store_true", help="Désactiver le design sonore")
     agents_p.add_argument("--outdir", default="out")
     agents_p.set_defaults(func=cmd_agents)
 

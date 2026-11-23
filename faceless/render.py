@@ -1,10 +1,23 @@
 from __future__ import annotations
 
+import math
+import random
 import shutil
+import wave
 from pathlib import Path
 
-from moviepy import AudioFileClip, ColorClip, CompositeVideoClip, ImageClip, vfx
+import numpy as np
+from moviepy import (
+    AudioArrayClip,
+    AudioFileClip,
+    ColorClip,
+    CompositeAudioClip,
+    CompositeVideoClip,
+    ImageClip,
+    vfx,
+)
 
+from .audiofx import build_sound_design
 from .captions import chunk_words_by_time, render_caption_png, render_karaoke_variants
 from .images import PALETTES
 
@@ -25,6 +38,47 @@ def _scene_clip(image_path, size, start, duration, pan_sign):
             "center",
         )
     )
+
+
+def _particles(size, total, accent):
+    rng = random.Random(3)
+    clips = []
+    dot_png = None
+    from PIL import Image, ImageDraw
+
+    radius = max(int(min(size) * 0.005), 3)
+    layer = Image.new("RGBA", (radius * 2 + 4, radius * 2 + 4), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(layer)
+    draw.ellipse(
+        (2, 2, 2 + radius * 2, 2 + radius * 2),
+        fill=(235, 232, 226, 70),
+    )
+    import tempfile
+
+    tmp = Path(tempfile.gettempdir()) / "faceless_dot.png"
+    layer.save(tmp)
+    sprite = ImageClip(str(tmp), transparent=True)
+    width, height = size
+    sprite_w = sprite.size[0]
+    for i in range(14):
+        phase = rng.uniform(0, 6.28)
+        speed = rng.uniform(12, 30)
+        x0 = rng.uniform(0.05, 0.95) * width
+        amp = rng.uniform(10, 40)
+        y0 = rng.uniform(0, 1.0)
+        clip = (
+            sprite.with_duration(total)
+            .with_start(0)
+            .with_position(
+                lambda t, x0=x0, phase=phase, amp=amp, speed=speed, y0=y0, h=height, sw=sprite_w, w=width: (
+                    max(0, min(x0 + amp * math.sin(0.5 + phase + 0.35 * t), w - sw)),
+                    (y0 * h - speed * t) % max(h - sw, 1),
+                )
+            )
+            .with_opacity(0.55)
+        )
+        clips.append(clip)
+    return clips
 
 
 def _progress_bar(total, size, accent):
@@ -56,6 +110,13 @@ def _karaoke_clips(words, size, tmp_dir, accent):
                 .with_duration(max(visible_end - w_start, 0.12))
                 .with_position(("center", top))
             )
+            clip = clip.resized(lambda t, dur=clip.duration: 1.0 + 0.10 * math.exp(-t / 0.06))
+            clip = clip.with_position(
+                lambda t, base_top=top: (
+                    "center",
+                    base_top + 5 * math.sin(2 * math.pi * 0.7 * t),
+                )
+            )
             clips.append(clip)
     return clips
 
@@ -77,6 +138,27 @@ def _fallback_caption_clips(segments, size, tmp_dir):
     return clips
 
 
+def _mixed_audio(voice_clip, total, scene_starts, sfx_on, out_dir):
+    if not sfx_on:
+        return voice_clip
+    sfx_path = Path(out_dir) / "sfx.wav"
+    build_sound_design(total, scene_starts, sfx_path)
+    sfx = AudioFileClip(str(sfx_path))
+    fps = 44100
+    voice_arr = voice_clip.to_soundarray(fps=fps)
+    if voice_arr.ndim == 1:
+        voice_arr = np.stack([voice_arr, voice_arr], axis=1)
+    sfx_arr = sfx.to_soundarray(fps=fps)
+    if sfx_arr.ndim == 1:
+        sfx_arr = np.stack([sfx_arr, sfx_arr], axis=1)
+    n = max(len(voice_arr), len(sfx_arr))
+    voice_arr = np.pad(voice_arr, ((0, n - len(voice_arr)), (0, 0)))
+    sfx_arr = np.pad(sfx_arr, ((0, n - len(sfx_arr)), (0, 0)))
+    mixed = np.clip(voice_arr + sfx_arr, -1.0, 1.0)
+    sfx.close()
+    return AudioArrayClip(mixed, fps=fps)
+
+
 def render_video(
     voice_path: str | Path,
     segments: dict,
@@ -85,6 +167,7 @@ def render_video(
     out_path: str | Path,
     captions_on: bool = True,
     style: str = "dark_cinematic",
+    sfx_on: bool = True,
 ) -> Path:
     out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -101,17 +184,36 @@ def render_video(
     shutil.rmtree(caption_dir, ignore_errors=True)
     caption_dir.mkdir(parents=True, exist_ok=True)
 
-    layers = []
     starts = [max(s[0], 0.0) for s in sentences]
+    layers = []
     for i, (start, end, _) in enumerate(sentences):
         scene_start = starts[i]
         scene_end = starts[i + 1] if i + 1 < len(sentences) else total
         duration = max(scene_end - scene_start, 0.6)
         image_path = image_paths[i % n_images]
         clip = _scene_clip(image_path, size, scene_start, duration, pan_sign=1 if i % 2 == 0 else -1)
+        if i == 0:
+            d0 = max(clip.duration, 0.01)
+            clip = clip.resized(lambda t, d0=d0: 1.0 + 0.16 * math.exp(-t / 0.35))
+        kind = i % 3
         if i > 0:
-            clip = clip.with_effects([vfx.CrossFadeIn(0.35)])
+            clip = clip.with_effects([vfx.CrossFadeIn(0.35 if kind == 1 else 0.22)])
+            if kind == 0:
+                d = max(clip.duration, 0.01)
+                clip = clip.resized(lambda t, d=d: 1.0 + 0.14 * math.exp(-t / 0.12))
+            elif kind == 2:
+                margin = (size[0] * 1.16 - size[0]) / 2
+                clip = clip.with_position(
+                    lambda t, d=duration, sign=1 if i % 2 == 0 else -1, m=margin: (
+                        -m / 2
+                        + sign * m * (t / d - 0.5)
+                        + sign * (1 - min(t / 0.35, 1.0)) * size[0] * 0.25,
+                        "center",
+                    )
+                )
         layers.append(clip)
+
+    layers += _particles(size, total, accent)
 
     if captions_on:
         words = segments.get("caption_words")
@@ -122,7 +224,10 @@ def render_video(
 
     layers.append(_progress_bar(total, size, accent))
 
-    final = CompositeVideoClip(layers, size=size).with_duration(total).with_audio(audio)
+    mixed = _mixed_audio(
+        audio, total, [s for s in starts], sfx_on, out_path.parent
+    )
+    final = CompositeVideoClip(layers, size=size).with_duration(total).with_audio(mixed)
     final = final.with_effects([vfx.FadeIn(0.4), vfx.FadeOut(0.7)])
     final.write_videofile(
         str(out_path),
@@ -136,5 +241,7 @@ def render_video(
     )
     final.close()
     audio.close()
+    if sfx_on and mixed is not audio:
+        mixed.close()
     shutil.rmtree(caption_dir, ignore_errors=True)
     return out_path

@@ -119,6 +119,7 @@ class Monteur(Agent):
                 output,
                 captions_on=not context.get("no_captions"),
                 style=style,
+                sfx_on=not context.get("no_sfx"),
             )
             outputs[label] = str(output)
         return AgentResult(ok=True, artifacts={"outputs": outputs}, notes=[", ".join(f"{k} → {v}" for k, v in outputs.items())])
