@@ -37,6 +37,32 @@ Avec `.env` configuré (`LLM_API_KEY`), ajoutez `--llm` pour des histoires uniqu
 python -m faceless.cli pipeline --topic "L'agenda de ma grand-mère" --formats vh
 ```
 
+### 4. Mode équipe d'agents (recommandé)
+
+```bash
+python -m faceless.cli agents --topic "L'agenda de ma grand-mère" --formats vh
+```
+
+Chaque vidéo est produite par une équipe spécialisée, supervisée par un `Réalisateur` :
+
+| Agent | Rôle |
+|---|---|
+| **Scripteur** | écrit l'histoire (hook, tension, chute) — régénérée automatiquement si refusée |
+| **VoixOff** | voix off + timings mot à mot |
+| **Artiste** | visuels de chaque scène (placeholders procéduraux ou vos images Midjourney) |
+| **Monteur** | assemblage final (Ken Burns, fondus, karaoké, barre de progression) |
+
+| Contrôle qualité | Sécurité vérifiée |
+|---|---|
+| **QualitéHistoire** | hook ≤ 16 mots, ≥ 120 mots, pas de clichés, structure |
+| **QualitéVoix** | débit 110-210 mots/min, durée cohérente |
+| **QualitéVisuels** | aucune scène vide/invisible, contraste suffisant |
+| **QualitéSynchro** | timings monotones, texte ↔ sous-titres alignés |
+| **QualitéRendu** | durée = audio, résolution exacte, fps 24, poids minimal |
+
+Un échec déclenche une reprise (l'histoire est régénérée avec une nouvelle graine, jusqu'à 3 essais).
+Le rapport complet est écrit dans `out/<slug>/qc_report.json`.
+
 Sorties dans `out/<slug>/` :
 
 | Fichier | Description |

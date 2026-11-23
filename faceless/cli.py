@@ -182,6 +182,37 @@ def cmd_pipeline(args):
     print(f"[4/4] Terminé : {out_dir}")
 
 
+def cmd_agents(args):
+    from .agents import Realisateur
+
+    load_env()
+    out_dir = Path(args.outdir) / _slug(args.topic)
+    realisateur = Realisateur()
+    print("🎬 Réalisateur : assemblement de l'équipe d'agents")
+    print("   Créateurs : Scripteur · VoixOff · Artiste · Monteur")
+    print("   Qualité  : Histoire · Voix · Visuels · Synchro · Rendu")
+    ok = realisateur.produce(
+        {
+            "topic": args.topic,
+            "genre": args.genre,
+            "seed": args.seed,
+            "attempt": 0,
+            "use_llm": args.llm,
+            "formats": args.formats,
+            "style": args.style,
+            "voice_name": args.voice_name,
+            "images_dir": args.images,
+            "no_captions": args.no_captions,
+        },
+        out_dir,
+    )
+    if ok:
+        print(f"\n✅ Production validée par le contrôle qualité : {out_dir}")
+    else:
+        print(f"\n❌ Production bloquée par le contrôle qualité — voir {out_dir / 'qc_report.json'}")
+        raise SystemExit(1)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="faceless",
@@ -225,6 +256,19 @@ def build_parser() -> argparse.ArgumentParser:
     pipe.add_argument("--no-captions", action="store_true")
     pipe.add_argument("--outdir", default="out")
     pipe.set_defaults(func=cmd_pipeline)
+
+    agents_p = sub.add_parser("agents", help="Production par équipe d'agents avec contrôles qualité")
+    agents_p.add_argument("--topic", required=True)
+    agents_p.add_argument("--genre", default="horreur", choices=GENRES)
+    agents_p.add_argument("--llm", action="store_true")
+    agents_p.add_argument("--seed", type=int, default=None)
+    agents_p.add_argument("--voice-name", default=None)
+    agents_p.add_argument("--images", default=None)
+    agents_p.add_argument("--style", default=DEFAULT_STYLE)
+    agents_p.add_argument("--formats", default="vh")
+    agents_p.add_argument("--no-captions", action="store_true")
+    agents_p.add_argument("--outdir", default="out")
+    agents_p.set_defaults(func=cmd_agents)
 
     return parser
 
