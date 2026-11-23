@@ -40,13 +40,20 @@ def _karaoke_clips(words, size, tmp_dir, accent):
     font_size = max(int(min(size) * 0.052), 26)
     top = int(size[1] * (0.66 if size[1] > size[0] else 0.74))
     max_width = int(size[0] * 0.88)
-    for chunk in chunks:
+    for chunk_index, chunk in enumerate(chunks):
         variants = render_karaoke_variants(chunk["words"], tmp_dir, max_width, font_size, accent)
-        for i, (w_start, w_end, _) in enumerate(chunk["words"]):
+        chunk_words = chunk["words"]
+        next_chunk_start = chunks[chunk_index + 1]["start"] if chunk_index + 1 < len(chunks) else None
+        for i, (w_start, w_end, _) in enumerate(chunk_words):
+            visible_end = w_end
+            if i + 1 < len(chunk_words):
+                visible_end = max(visible_end, chunk_words[i + 1][0])
+            elif next_chunk_start is not None:
+                visible_end = max(visible_end, next_chunk_start)
             clip = (
                 ImageClip(str(variants[i]), transparent=True)
                 .with_start(max(w_start, 0.0))
-                .with_duration(max(w_end - w_start, 0.08))
+                .with_duration(max(visible_end - w_start, 0.12))
                 .with_position(("center", top))
             )
             clips.append(clip)

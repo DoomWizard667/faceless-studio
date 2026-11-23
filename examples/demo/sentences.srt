@@ -1,35 +1,35 @@
 1
-00:00:00,100 --> 00:00:03,087
+00:00:00,000 --> 00:00:04,339
 Personne ne me croit quand je raconte ce que j'ai vu la nuit du 13.
 
 2
-00:00:03,962 --> 00:00:08,000
+00:00:04,404 --> 00:00:09,391
 Le soir où j'ai décidé de vérifier par moi-même, la maison était silencieuse.
 
 3
-00:00:08,875 --> 00:00:12,625
+00:00:09,456 --> 00:00:13,860
 Chaque nuit, la même chose se reproduisait, à quelques minutes près.
 
 4
-00:00:13,500 --> 00:00:16,024
+00:00:13,925 --> 00:00:17,616
 J'ai trouvé quelque chose qui n'aurait jamais dû exister.
 
 5
-00:00:16,899 --> 00:00:18,149
+00:00:17,681 --> 00:00:19,495
 Et ça m'avait laissé un mot.
 
 6
-00:00:19,012 --> 00:00:21,862
+00:00:19,559 --> 00:00:22,992
 Tout a commencé la nuit du 13, au sous-sol du bureau.
 
 7
-00:00:22,725 --> 00:00:24,887
+00:00:23,057 --> 00:00:26,101
 Rien ne laissait présager ce qui allait suivre.
 
 8
-00:00:25,750 --> 00:00:27,912
+00:00:26,166 --> 00:00:29,339
 Et je n'ai plus jamais reparlé de cette histoire.
 
 9
-00:00:28,774 --> 00:00:29,812
+00:00:29,404 --> 00:00:30,699
 Jusqu'à aujourd'hui.

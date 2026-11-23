@@ -213,6 +213,13 @@ def cmd_agents(args):
         raise SystemExit(1)
 
 
+def cmd_qcvideo(args):
+    from .videoqc import main_audit
+
+    code = main_audit(args.dir, frames=args.frames)
+    raise SystemExit(code)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="faceless",
@@ -269,6 +276,11 @@ def build_parser() -> argparse.ArgumentParser:
     agents_p.add_argument("--no-captions", action="store_true")
     agents_p.add_argument("--outdir", default="out")
     agents_p.set_defaults(func=cmd_agents)
+
+    qc_p = sub.add_parser("qcvideo", help="Auditer la qualité de vidéos déjà rendues (frames, SRT, audio)")
+    qc_p.add_argument("--dir", required=True, help="Dossier contenant les MP4 (ex: examples/demo)")
+    qc_p.add_argument("--frames", type=int, default=8)
+    qc_p.set_defaults(func=cmd_qcvideo)
 
     return parser
 

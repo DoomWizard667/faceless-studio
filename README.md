@@ -94,6 +94,17 @@ silhouettes, portes, couloirs, skyline, bokeh, grain film, vignette), effet Ken 
 latéral alterné, fondus enchaînés entre scènes, sous-titres karaoké avec mot actif surligné
 (style CapCut) et barre de progression.
 
+### 5. Auditer des vidéos déjà rendues
+
+```bash
+python -m faceless.cli qcvideo --dir examples/demo
+```
+
+Un auditeur analyse chaque MP4 : durée vs audio, résolution, fps, frames échantillonnées
+(luminosité, présence des sous-titres aux instants où un mot est prononcé), cohérence des SRT
+(monotonie, trous entre scènes). Le verdict et le rapport détaillé sont écrits dans
+`qc_report_demo.json` à côté des vidéos.
+
 ## Personnalisation
 
 - **Voix** : `--voice-name fr-FR-VivienneMultilingualNeural` (liste complète : `edge-tts --list-voices`), ou ElevenLabs via `.env`
