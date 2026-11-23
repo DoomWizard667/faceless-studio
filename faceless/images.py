@@ -4,30 +4,34 @@ import re
 from pathlib import Path
 
 import numpy as np
-from PIL import Image, ImageDraw, ImageFilter, ImageFont
+from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageFont
 
 from .config import FONT_PATH
 
 PALETTES = {
     "dark_cinematic": {
-        "stops": [(6, 8, 14), (24, 22, 38), (48, 34, 30)],
-        "accent": (222, 130, 70),
-        "glow": (255, 150, 80),
+        "stops": [(10, 6, 26), (46, 18, 50), (30, 30, 66), (100, 44, 44)],
+        "accent": (255, 150, 70),
+        "glow": (255, 120, 60),
+        "wash": (130, 70, 220),
     },
     "office_revanche": {
-        "stops": [(6, 12, 18), (20, 44, 56), (210, 128, 66)],
-        "accent": (240, 160, 80),
-        "glow": (120, 200, 230),
+        "stops": [(6, 16, 34), (16, 66, 88), (34, 84, 104), (235, 135, 60)],
+        "accent": (255, 175, 70),
+        "glow": (90, 210, 255),
+        "wash": (40, 130, 190),
     },
     "liminal_night": {
-        "stops": [(4, 6, 10), (20, 28, 34), (150, 180, 200)],
-        "accent": (170, 205, 225),
-        "glow": (190, 220, 235),
+        "stops": [(8, 8, 30), (24, 36, 84), (44, 76, 122), (140, 185, 225)],
+        "accent": (120, 225, 255),
+        "glow": (195, 130, 255),
+        "wash": (150, 95, 235),
     },
     "ember": {
-        "stops": [(14, 8, 6), (46, 24, 14), (250, 120, 50)],
-        "accent": (255, 140, 60),
-        "glow": (255, 170, 90),
+        "stops": [(24, 8, 6), (80, 26, 12), (150, 46, 18), (255, 155, 65)],
+        "accent": (255, 175, 75),
+        "glow": (255, 120, 40),
+        "wash": (255, 64, 64),
     },
 }
 
@@ -111,7 +115,7 @@ def _glow(image: Image.Image, color: tuple, center: tuple, radius: int, strength
     return Image.alpha_composite(image, layer)
 
 
-def _bokeh(image: Image.Image, accent: tuple, rng, count: int = 14) -> Image.Image:
+def _bokeh(image: Image.Image, colors: list, rng, count: int = 18) -> Image.Image:
     layer = Image.new("RGBA", image.size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(layer)
     width, height = image.size
@@ -120,10 +124,11 @@ def _bokeh(image: Image.Image, accent: tuple, rng, count: int = 14) -> Image.Ima
         radius = rng.randint(radius_ref // 90, radius_ref // 22)
         x = rng.randint(0, width)
         y = rng.randint(0, int(height * 0.75))
-        alpha = rng.randint(18, 60)
+        alpha = rng.randint(26, 80)
+        color = colors[rng.randrange(len(colors))]
         draw.ellipse(
             (x - radius, y - radius, x + radius, y + radius),
-            fill=accent + (alpha,),
+            fill=color + (alpha,),
         )
     layer = layer.filter(ImageFilter.GaussianBlur(radius=radius_ref // 120))
     return Image.alpha_composite(image, layer)
@@ -154,10 +159,14 @@ def _silhouette(draw, cx: int, floor: int, height: int, width: int, color, rim_c
     head_y = floor - int(height * 0.30)
     body_top = head_y + head_r
     draw.ellipse(
+        (cx - int(width * 0.075), floor - int(height * 0.012), cx + int(width * 0.075), floor + int(height * 0.014)),
+        fill=(8, 8, 12, 150),
+    )
+    draw.ellipse(
         (cx - head_r, head_y - head_r, cx + head_r, head_y + head_r),
         fill=color,
         outline=rim_color if rim_color else None,
-        width=3 if rim_color else 0,
+        width=max(int(width * 0.004), 3) if rim_color else 0,
     )
     draw.polygon(
         [
@@ -168,10 +177,23 @@ def _silhouette(draw, cx: int, floor: int, height: int, width: int, color, rim_c
         ],
         fill=color,
     )
+    if rim_color:
+        tilt = 1 if cx < width // 2 else -1
+        draw.line(
+            [
+                (cx + tilt * head_r * 1.9, floor),
+                (cx + tilt * head_r * 0.75, body_top + head_r * 0.2),
+            ],
+            fill=rim_color,
+            width=max(int(width * 0.0035), 3),
+        )
     return head_y
 
 
-def _motif_layer(image: Image.Image, motif: str, accent: tuple, rng):
+def _motif_layer(image: Image.Image, motif: str, palette: dict, rng):
+    accent = palette["accent"]
+    glow = palette.get("glow", accent)
+    cool = palette.get("wash", (120, 180, 255))
     width, height = image.size
     layer = Image.new("RGBA", image.size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(layer)
@@ -218,11 +240,18 @@ def _motif_layer(image: Image.Image, motif: str, accent: tuple, rng):
             y1 = int(floor - (floor - horizon) * (1 - (1 - scale) * 0.25))
             draw.rectangle(
                 (x0, y1 - fh, x0 + fw, y1),
-                outline=(150, 152, 160, 150),
+                outline=(160, 160, 175, 160),
                 width=max(int(width * 0.0022), 2),
             )
+            lamp_c = accent if i % 2 == 0 else cool
+            lamp_r = max(int(width * 0.006), 3)
+            lamp_y = y1 - fh + int(fh * 0.25)
+            draw.ellipse(
+                (cx - lamp_r, lamp_y - lamp_r, cx + lamp_r, lamp_y + lamp_r),
+                fill=lamp_c + (200,),
+            )
             if i == 1:
-                draw.rectangle((x0 + 6, y1 - fh + 6, x0 + fw - 6, y1), fill=accent + (26,))
+                draw.rectangle((x0 + 6, y1 - fh + 6, x0 + fw - 6, y1), fill=accent + (34,))
         depth = Image.new("RGBA", image.size, (0, 0, 0, 0))
         ddraw = ImageDraw.Draw(depth)
         ddraw.ellipse(
@@ -270,7 +299,7 @@ def _motif_layer(image: Image.Image, motif: str, accent: tuple, rng):
         win_h = int(height * 0.30)
         x0 = (width - win_w) // 2
         y0 = horizon
-        draw.rectangle((x0, y0, x0 + win_w, y0 + win_h), fill=(210, 215, 225, 60))
+        draw.rectangle((x0, y0, x0 + win_w, y0 + win_h), fill=glow + (86,))
         bar = max(3, int(width * 0.006))
         draw.rectangle((x0, y0 + win_h // 2 - bar, x0 + win_w, y0 + win_h // 2 + bar), fill=dark)
         draw.rectangle((x0 + win_w // 2 - bar, y0, x0 + win_w // 2 + bar, y0 + win_h), fill=dark)
@@ -386,9 +415,10 @@ def _motif_layer(image: Image.Image, motif: str, accent: tuple, rng):
                 for wx in range(x + int(width * 0.012), x + bw - int(width * 0.012), int(width * 0.03)):
                     if rng_sk.random() < 0.55:
                         lw = max(2, int(width * 0.004))
+                        light_c = glow if rng_sk.random() < 0.55 else (60, 200, 255) if rng_sk.random() < 0.5 else accent
                         draw.rectangle(
                             (wx, wy, wx + lw, wy + int(height * 0.012)),
-                            fill=accent + (rng_sk.randint(90, 190),),
+                            fill=light_c + (rng_sk.randint(120, 230),),
                         )
             x += bw + int(width * 0.012)
     return layer
@@ -409,34 +439,30 @@ def render_placeholder(
     motif = pick_motif(text, index, rng)
 
     image = _gradient(size, palette["stops"]).convert("RGBA")
+    gx = int(size[0] * rng.uniform(0.3, 0.7))
+    gy = int(size[1] * rng.uniform(0.28, 0.5))
     image = _glow(
         image,
         palette["glow"],
-        (int(size[0] * rng.uniform(0.3, 0.7)), int(size[1] * rng.uniform(0.28, 0.5))),
+        (gx, gy),
         int(min(size) * 0.30),
-        strength=110,
+        strength=140,
+    )
+    image = _glow(
+        image,
+        palette.get("wash", palette["glow"]),
+        (int(size[0] * 0.25 + gx * 0.5) % size[0], int(size[1] * 0.75)),
+        int(min(size) * 0.25),
+        strength=90,
     )
     if motif != "city":
-        image = _light_shaft(image, palette["accent"], rng)
-    motif_layer = _motif_layer(image, motif, palette["accent"], rng)
+        image = _light_shaft(image, palette["glow"], rng, strength=58)
+    motif_layer = _motif_layer(image, motif, palette, rng)
     image = Image.alpha_composite(image, motif_layer)
-    image = _bokeh(image, palette["accent"], rng)
+    image = ImageEnhance.Color(image).enhance(1.25)
+    image = _bokeh(image, [palette["accent"], palette.get("glow", palette["accent"]), palette.get("wash", (140, 180, 255))], rng)
     image = _grain(image)
     image = _vignette(image)
-
-    overlay = Image.new("RGBA", size, (0, 0, 0, 0))
-    overlay_draw = ImageDraw.Draw(overlay)
-    width, height = size
-    mast_font = _load_font(max(int(min(size) * 0.024), 14))
-    mast = f"{motif.upper()} — SCÈNE {index}/{total}"
-    mast_w = overlay_draw.textlength(mast, font=mast_font)
-    overlay_draw.text(
-        ((width - mast_w) / 2, int(height * 0.25)),
-        mast,
-        font=mast_font,
-        fill=palette["accent"] + (230,),
-    )
-    image = Image.alpha_composite(image, overlay)
     image.convert("RGB").save(out_path, quality=95)
     return out_path
 
