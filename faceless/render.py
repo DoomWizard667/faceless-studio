@@ -22,29 +22,35 @@ from .captions import chunk_words_by_time, render_caption_png, render_karaoke_va
 from .images import PALETTES
 
 
-def _scene_clip(image_path, size, start, duration, pan_sign):
-    scale = 1.16
+def _scene_clip(image_path, size, start, duration, pan_sign, breath_phase=0.0):
+    scale = 1.24
     clip = (
         ImageClip(str(image_path))
         .resized(scale)
         .with_start(max(start, 0.0))
         .with_duration(max(duration, 0.6))
     )
-    margin = (size[0] * scale - size[0]) / 2
-    d = max(clip.duration, 0.01)
-    return clip.with_position(
-        lambda t: (
-            -margin / 2 + pan_sign * margin * (t / d - 0.5),
-            "center",
-        )
+    clip = clip.resized(
+        lambda t, ph=breath_phase: 1.0 + 0.014 * math.sin(2 * math.pi * 0.25 * t + ph)
     )
+    margin_x = (size[0] * scale - size[0]) / 2
+    margin_y = (size[1] * scale - size[1]) / 2
+    d = max(clip.duration, 0.01)
+
+    def frame(t, mx=margin_x, my=margin_y, d=d, sign=pan_sign, ph=breath_phase):
+        progress = t / d
+        x = -mx / 2 + sign * mx * (progress - 0.5)
+        y = -my / 2 + my * 0.25 * math.sin(2 * math.pi * 0.5 * progress + ph)
+        return x, y
+
+    return clip.with_position(frame)
 
 
 def _particles(size, total, accent):
     rng = random.Random(3)
     clips = []
     dot_png = None
-    from PIL import Image, ImageDraw
+    from PIL import Image, ImageDraw, ImageFilter
 
     radius = max(int(min(size) * 0.005), 3)
     layer = Image.new("RGBA", (radius * 2 + 4, radius * 2 + 4), (0, 0, 0, 0))
@@ -62,7 +68,7 @@ def _particles(size, total, accent):
     sprite_w = sprite.size[0]
     for i in range(14):
         phase = rng.uniform(0, 6.28)
-        speed = rng.uniform(12, 30)
+        speed = rng.uniform(20, 44)
         x0 = rng.uniform(0.05, 0.95) * width
         amp = rng.uniform(10, 40)
         y0 = rng.uniform(0, 1.0)
@@ -78,7 +84,32 @@ def _particles(size, total, accent):
             .with_opacity(0.55)
         )
         clips.append(clip)
+    big = layer.filter(ImageFilter.GaussianBlur(6))
+    big_path = Path(tempfile.gettempdir()) / "faceless_dot_big.png"
+    big.save(big_path)
+    sprite_big = ImageClip(str(big_path), transparent=True)
+    for i in range(6):
+        phase = rng.uniform(0, 6.28)
+        speed = rng.uniform(10, 22)
+        x0 = rng.uniform(0.08, 0.9) * width
+        y0 = rng.uniform(0, 1.0)
+        clip = (
+            sprite_big.with_duration(total)
+            .with_start(0)
+            .with_position(
+                lambda t, x0=x0, phase=phase, speed=speed, y0=y0, h=height, sw=sprite_w, w=width: (
+                    max(0, min(x0 + 30 * math.sin(0.3 + phase + 0.25 * t), w - sw)),
+                    (y0 * h - speed * t) % max(h - sw, 1),
+                )
+            )
+            .with_opacity(0.4)
+        )
+        clips.append(clip)
     return clips
+    bar_h = 6
+    bar = ColorClip(size=(size[0], bar_h), color=accent).with_start(0).with_duration(total)
+    bar = bar.resized(lambda t: (max(int(size[0] * t / total), 2), bar_h))
+    return bar.with_position((0, 0))
 
 
 def _progress_bar(total, size, accent):
@@ -191,10 +222,17 @@ def render_video(
         scene_end = starts[i + 1] if i + 1 < len(sentences) else total
         duration = max(scene_end - scene_start, 0.6)
         image_path = image_paths[i % n_images]
-        clip = _scene_clip(image_path, size, scene_start, duration, pan_sign=1 if i % 2 == 0 else -1)
+        clip = _scene_clip(
+            image_path,
+            size,
+            scene_start,
+            duration,
+            pan_sign=1 if i % 2 == 0 else -1,
+            breath_phase=0.9 * i,
+        )
         if i == 0:
             d0 = max(clip.duration, 0.01)
-            clip = clip.resized(lambda t, d0=d0: 1.0 + 0.16 * math.exp(-t / 0.35))
+            clip = clip.resized(lambda t, d0=d0: 1.0 + 0.22 * math.exp(-t / 0.35))
         kind = i % 3
         if i > 0:
             clip = clip.with_effects([vfx.CrossFadeIn(0.35 if kind == 1 else 0.22)])

@@ -90,11 +90,19 @@ Les images sont automatiquement recadrées (cover) aux deux formats.
 ## Rendu visuel et sonore inclus
 
 Chaque vidéo est composée automatiquement : décors procéduraux (dégradés cinéma, halos lumineux,
-silhouettes, portes, couloirs, skyline, bokeh, grain film, vignette), effet Ken Burns avec pan
-latéral alterné, **transitions variées** (fondu, zoom punch, slide), **particules flottantes**, sous-titres
-karaoké avec mot actif surligné et **pop d'échelle** à chaque mot (style CapCut), barre de progression,
-et **design sonore synthétisé** : ambiance sombre continue, whoosh à chaque transition de scène,
-boom d'impact à l'ouverture et à la chute (désactivable avec `--no-sfx`).
+grain film, vignette), **motifs choisis selon le contenu de chaque phrase** (porte, escaliers,
+fenêtre, maison, téléphone, couloir, skyline, yeux, silhouettes…) avec rim light, et
+**personnages mis en avant** : silhouettes agrandies, paires de personnages, yeux lumineux,
+smartphone en surbrillance — le karaoké est le seul bloc de texte à l'écran.
+
+Du mouvement partout pour accrocher l'œil : effet Ken Burns renforcé (zoom 1,24×, pan latéral
+alterné **combiné à une dérive verticale sinusoïdale** et une respiration d'échelle),
+**transitions variées** (fondu, zoom punch, slide), double couche de **particules flottantes**
+(fines + gros points flous), punch d'échelle d'ouverture, barre de progression, et sous-titres
+karaoké avec mot actif surligné, **pop d'échelle** et flottement vertical (style CapCut).
+
+Le tout avec un **design sonore synthétisé** : ambiance sombre continue, whoosh à chaque
+transition de scène, boom d'impact à l'ouverture et à la chute (désactivable avec `--no-sfx`).
 
 ### 5. Auditer des vidéos déjà rendues
 
