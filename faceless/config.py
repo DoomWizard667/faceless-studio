@@ -27,6 +27,11 @@ MJ_STYLE_PRESETS = {
         "night photography, empty corridor, fluorescent flicker, liminal space, "
         "uncanny atmosphere, cinematic still"
     ),
+    "night_pov": (
+        "found footage night still, phone camera POV, near-black shadows, cold blue "
+        "monochrome night, single signal red element, heavy VHS grain, urban darkness, "
+        "unsettling atmosphere, high contrast"
+    ),
     "ember": (
         "cinematic still lit by embers and dying fire, deep rust and amber tones, "
         "heavy shadows, ominous warm atmosphere, film grain, 35mm photography"

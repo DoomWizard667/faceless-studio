@@ -32,6 +32,15 @@ PALETTES = {
         "fog": (80, 92, 150),
         "shadow": (6, 7, 14),
     },
+    "night_pov": {
+        "stops": [(4, 6, 14), (10, 18, 38), (18, 32, 58), (34, 52, 84), (96, 122, 154)],
+        "accent": (238, 72, 80),
+        "glow": (120, 182, 255),
+        "wash": (58, 88, 158),
+        "fog": (38, 56, 94),
+        "shadow": (3, 4, 9),
+        "grain": 14,
+    },
     "ember": {
         "stops": [(26, 8, 6), (74, 24, 12), (126, 42, 18), (172, 76, 28), (255, 158, 70)],
         "accent": (255, 175, 75),
@@ -811,7 +820,7 @@ def render_placeholder(
     image = _grade(image, palette)
     image = _bloom(image, threshold=180)
     image = _chromatic(image)
-    image = _grain(image, amount=7)
+    image = _grain(image, amount=palette.get("grain", 7.0))
     image = _vignette(image)
     image.convert("RGB").save(out_path, quality=95)
     return out_path

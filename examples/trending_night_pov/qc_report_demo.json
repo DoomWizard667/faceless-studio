@@ -1,0 +1,27 @@
+{
+  "cible": "out/trending",
+  "videos": [
+    {
+      "fichier": "final_9x16.mp4",
+      "label": "9x16",
+      "issues": [],
+      "verdict": "VALIDÉE",
+      "srt": {
+        "captions": 34,
+        "sentences": 11
+      },
+      "frames": {
+        "analysées": 8,
+        "frames_noires": [],
+        "frames_sans_sous_titres": []
+      },
+      "qa_interne": {
+        "controle_synchro": 0.7,
+        "controle_rendu": 1.0
+      },
+      "score": 1.0
+    }
+  ],
+  "verdict_global": "VALIDÉ",
+  "genere_le": "2026-11-24T10:22:32"
+}
