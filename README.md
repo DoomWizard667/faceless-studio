@@ -89,13 +89,17 @@ Les images sont automatiquement recadrées (cover) aux deux formats.
 
 ## Rendu visuel et sonore inclus
 
-Chaque vidéo est composée automatiquement : décors procéduraux aux **couleurs riches et
-variées** (dégradés multi-teintes, double halo chaud/froid, lumières mixtes dans les fenêtres et
-lampes du couloir, bokeh multicolore, grain film, vignette), **motifs choisis selon le contenu de
+Chaque vidéo est composée automatiquement par un **moteur de décors procéduraux avancé** :
+scènes en perspective (sols avec lignes de fuite, murs à moulures, couloirs à portes latérales,
+escaliers avec rambarde, maisons à fumée de cheminée, skylines sur 3 plans de profondeur),
+**atmosphère volumétrique** (brouillard bruité multi-bandes, rayons de lumière, halos, voiles
+de brume au sol), **étalonnage cinéma** (split-toning ombres/lumière, courbe en S, bloom sur les
+hautes lumières, aberration chromatique, grain, vignette), **motifs choisis selon le contenu de
 chaque phrase** (porte, escaliers, fenêtre, maison, téléphone, couloir, skyline, yeux,
-silhouettes…) et **personnages mis en avant** : silhouettes agrandies avec rim light, ombre au
-sol, paires de personnages, yeux lumineux, smartphone en surbrillance — le karaoké est le seul
-bloc de texte à l'écran.
+silhouettes…) et **personnages construits** : silhouettes à épaules, bras et jambes avec double
+rim light d'intensité contrastée, ombre portée au sol, paires face-à-face, yeux détaillés
+(iris, reflet, obscurité ambiante), smartphone avec bulles de messages et pouce — le karaoké
+reste le seul bloc de texte à l'écran.
 
 Du mouvement partout pour accrocher l'œil : effet Ken Burns renforcé (zoom 1,24×, pan latéral
 alterné **combiné à une dérive verticale sinusoïdale** et une respiration d'échelle),
