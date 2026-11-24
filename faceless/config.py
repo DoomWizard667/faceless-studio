@@ -2,7 +2,8 @@ import os
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-FONT_PATH = PROJECT_ROOT / "assets" / "fonts" / "Montserrat-Bold.ttf"
+FONT_PATH = PROJECT_ROOT / "assets" / "fonts" / "LuckiestGuy-Regular.ttf"
+FONT_PATH_FALLBACK = PROJECT_ROOT / "assets" / "fonts" / "Montserrat-Bold.ttf"
 ASSETS_DIR = PROJECT_ROOT / "assets"
 
 VERTICAL = (1080, 1920)

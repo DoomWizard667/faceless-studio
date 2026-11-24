@@ -5,12 +5,14 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
-from .config import FONT_PATH, WORD_GROUP_SIZE
+from .config import FONT_PATH, FONT_PATH_FALLBACK, WORD_GROUP_SIZE
 
 
 def _load_font(size: int) -> ImageFont.FreeTypeFont:
     if FONT_PATH.exists():
         return ImageFont.truetype(str(FONT_PATH), size)
+    if FONT_PATH_FALLBACK.exists():
+        return ImageFont.truetype(str(FONT_PATH_FALLBACK), size)
     return ImageFont.load_default(size)
 
 

@@ -130,7 +130,7 @@ Un auditeur analyse chaque MP4 : durée vs audio, résolution, fps, frames écha
 
 - **Voix** : `--voice-name fr-FR-VivienneMultilingualNeural` (liste complète : `edge-tts --list-voices`), ou ElevenLabs via `.env`
 - **Style visuel** : `--style dark_cinematic | office_revanche | liminal_night | ember | night_pov` (night_pov = POV nuit froide, grain VHS, accent rouge — calibré sur les formats viraux actuels de la niche)
-- **Sous-titres** : désactivables avec `--no-captions`
+- **Sous-titres** : désactivables avec `--no-captions` — police virale intégrée (Luckiest Guy), remplaçable via `assets/fonts/` (voir `assets/fonts/CREDITS.md`)
 - **Musique** : `--music auto | none | fichier.mp3` (pistes CC0 incluses dans `assets/music/`)
 - **Steps suivants conseillés** : remplacer les placeholders par des images Midjourney (voir ci-dessus) pour un rendu pro
 
