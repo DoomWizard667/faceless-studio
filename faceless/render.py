@@ -122,9 +122,9 @@ def _progress_bar(total, size, accent):
 def _karaoke_clips(words, size, tmp_dir, accent):
     chunks = chunk_words_by_time(words, 3)
     clips = []
-    font_size = max(int(min(size) * 0.052), 26)
+    font_size = max(int(min(size) * 0.062), 30)
     top = int(size[1] * (0.66 if size[1] > size[0] else 0.74))
-    max_width = int(size[0] * 0.88)
+    max_width = int(size[0] * 0.84)
     for chunk_index, chunk in enumerate(chunks):
         variants = render_karaoke_variants(chunk["words"], tmp_dir, max_width, font_size, accent)
         chunk_words = chunk["words"]
@@ -141,11 +141,11 @@ def _karaoke_clips(words, size, tmp_dir, accent):
                 .with_duration(max(visible_end - w_start, 0.12))
                 .with_position(("center", top))
             )
-            clip = clip.resized(lambda t, dur=clip.duration: 1.0 + 0.10 * math.exp(-t / 0.06))
+            clip = clip.resized(lambda t, dur=clip.duration: 1.0 + 0.17 * math.exp(-t / 0.05))
             clip = clip.with_position(
                 lambda t, base_top=top: (
                     "center",
-                    base_top + 5 * math.sin(2 * math.pi * 0.7 * t),
+                    base_top + 7 * math.sin(2 * math.pi * 0.7 * t),
                 )
             )
             clips.append(clip)
@@ -154,9 +154,9 @@ def _karaoke_clips(words, size, tmp_dir, accent):
 
 def _fallback_caption_clips(segments, size, tmp_dir):
     clips = []
-    font_size = max(int(min(size) * 0.052), 26)
+    font_size = max(int(min(size) * 0.062), 30)
     top = int(size[1] * (0.66 if size[1] > size[0] else 0.74))
-    max_width = int(size[0] * 0.88)
+    max_width = int(size[0] * 0.84)
     for i, (start, end, text) in enumerate(segments["captions"]):
         png = render_caption_png(text, tmp_dir / f"cap_{i:03d}.png", max_width, font_size)
         clip = (
