@@ -169,24 +169,36 @@ def _fallback_caption_clips(segments, size, tmp_dir):
     return clips
 
 
-def _mixed_audio(voice_clip, total, scene_starts, sfx_on, out_dir):
+def _mixed_audio(voice_clip, total, scene_starts, sfx_on, out_dir, music_path=None):
+    layers = [voice_clip]
+    music = None
+    if music_path is not None:
+        from .music import build_music_layer
+
+        music_file = build_music_layer(music_path, total, Path(out_dir) / "music.wav")
+        music = AudioFileClip(str(music_file))
+        layers.append(music)
+    if not sfx_on and music is not None:
+        return _merge_layers(layers, total)
     if not sfx_on:
         return voice_clip
     sfx_path = Path(out_dir) / "sfx.wav"
     build_sound_design(total, scene_starts, sfx_path)
-    sfx = AudioFileClip(str(sfx_path))
+    layers.append(AudioFileClip(str(sfx_path)))
+    return _merge_layers(layers, total)
+
+
+def _merge_layers(layers, total):
     fps = 44100
-    voice_arr = voice_clip.to_soundarray(fps=fps)
-    if voice_arr.ndim == 1:
-        voice_arr = np.stack([voice_arr, voice_arr], axis=1)
-    sfx_arr = sfx.to_soundarray(fps=fps)
-    if sfx_arr.ndim == 1:
-        sfx_arr = np.stack([sfx_arr, sfx_arr], axis=1)
-    n = max(len(voice_arr), len(sfx_arr))
-    voice_arr = np.pad(voice_arr, ((0, n - len(voice_arr)), (0, 0)))
-    sfx_arr = np.pad(sfx_arr, ((0, n - len(sfx_arr)), (0, 0)))
-    mixed = np.clip(voice_arr + sfx_arr, -1.0, 1.0)
-    sfx.close()
+    arrays = []
+    for layer in layers:
+        arr = layer.to_soundarray(fps=fps)
+        if arr.ndim == 1:
+            arr = np.stack([arr, arr], axis=1)
+        arrays.append(arr)
+    n = max(len(arr) for arr in arrays)
+    arrays = [np.pad(arr, ((0, n - len(arr)), (0, 0))) for arr in arrays]
+    mixed = np.clip(sum(arrays), -1.0, 1.0)
     return AudioArrayClip(mixed, fps=fps)
 
 
@@ -199,6 +211,7 @@ def render_video(
     captions_on: bool = True,
     style: str = "dark_cinematic",
     sfx_on: bool = True,
+    music_path: str | Path | None = None,
 ) -> Path:
     out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -263,7 +276,7 @@ def render_video(
     layers.append(_progress_bar(total, size, accent))
 
     mixed = _mixed_audio(
-        audio, total, [s for s in starts], sfx_on, out_path.parent
+        audio, total, [s for s in starts], sfx_on, out_path.parent, music_path
     )
     final = CompositeVideoClip(layers, size=size).with_duration(total).with_audio(mixed)
     final = final.with_effects([vfx.FadeIn(0.4), vfx.FadeOut(0.7)])
@@ -279,7 +292,9 @@ def render_video(
     )
     final.close()
     audio.close()
-    if sfx_on and mixed is not audio:
+    if mixed is not audio:
         mixed.close()
     shutil.rmtree(caption_dir, ignore_errors=True)
+    music_file = out_path.parent / "music.wav"
+    music_file.unlink(missing_ok=True)
     return out_path

@@ -108,7 +108,12 @@ alterné **combiné à une dérive verticale sinusoïdale** et une respiration d
 karaoké avec mot actif surligné, **pop d'échelle** et flottement vertical (style CapCut).
 
 Le tout avec un **design sonore synthétisé** : ambiance sombre continue, whoosh à chaque
-transition de scène, boom d'impact à l'ouverture et à la chute (désactivable avec `--no-sfx`).
+transition de scène, boom d'impact à l'ouverture et à la chute (désactivable avec `--no-sfx`),
+et une **musique de fond libre de droits (CC0)** sélectionnée automatiquement selon le sujet
+et mixée sous la voix avec fondu entrée/sortie : deux pistes fournies dans `assets/music/`
+(crédits dans [`assets/music/CREDITS.md`](assets/music/CREDITS.md)) — déposez-y vos propres
+fichiers .mp3/.ogg/.wav pour les utiliser ; `--music none` désactive, `--music fichier.mp3`
+impose une piste (choix automatique par défaut via le hash du sujet).
 
 ### 5. Auditer des vidéos déjà rendues
 
@@ -126,6 +131,7 @@ Un auditeur analyse chaque MP4 : durée vs audio, résolution, fps, frames écha
 - **Voix** : `--voice-name fr-FR-VivienneMultilingualNeural` (liste complète : `edge-tts --list-voices`), ou ElevenLabs via `.env`
 - **Style visuel** : `--style dark_cinematic | office_revanche | liminal_night | ember`
 - **Sous-titres** : désactivables avec `--no-captions`
+- **Musique** : `--music auto | none | fichier.mp3` (pistes CC0 incluses dans `assets/music/`)
 - **Steps suivants conseillés** : remplacer les placeholders par des images Midjourney (voir ci-dessus) pour un rendu pro
 
 ## Workflow recommandé (chaîne)

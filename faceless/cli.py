@@ -117,6 +117,17 @@ def _write_mj_prompts(sentences, style: str, out_dir: Path) -> None:
     (out_dir / "midjourney_prompts.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def _resolve_music(choice, slug):
+    if not choice or choice == "none":
+        return None
+    if choice == "auto":
+        from .music import pick_track
+
+        return pick_track(slug)
+    path = Path(choice)
+    return path if path.exists() else None
+
+
 def cmd_video(args):
     load_env()
     out_dir = Path(args.outdir)
@@ -139,10 +150,12 @@ def cmd_video(args):
     write_srt(segments["captions"] or segments["sentences"], out_dir / "captions.srt")
     write_srt(segments["sentences"], out_dir / "sentences.srt")
     _write_mj_prompts(segments["sentences"], args.style, out_dir)
+    music_path = _resolve_music(args.music, out_dir.name)
     for label, size in _sizes(args.formats):
         target = VERTICAL if size[1] > size[0] else HORIZONTAL
         output = out_dir / f"final_{label}.mp4"
         print(f"Rendu {label} → {output}")
+
         render_video(
             voice_path,
             segments,
@@ -153,6 +166,7 @@ def cmd_video(args):
             captions_on=not args.no_captions,
             style=args.style,
             sfx_on=not args.no_sfx,
+            music_path=music_path,
         )
     print(f"Terminé : {out_dir}")
 
@@ -176,6 +190,7 @@ def cmd_pipeline(args):
     write_srt(segments["sentences"], out_dir / "sentences.srt")
     _write_mj_prompts(segments["sentences"], args.style, out_dir)
     print("[3/4] Images + rendu...")
+    music_path = _resolve_music(args.music, _slug(args.topic))
     for label, size in _sizes(args.formats):
         target = VERTICAL if size[1] > size[0] else HORIZONTAL
         output = out_dir / f"final_{label}.mp4"
@@ -195,6 +210,7 @@ def cmd_pipeline(args):
             captions_on=not args.no_captions,
             style=args.style,
             sfx_on=not args.no_sfx,
+            music_path=music_path,
         )
     print(f"[4/4] Terminé : {out_dir}")
 
@@ -221,6 +237,7 @@ def cmd_agents(args):
             "images_dir": args.images,
             "no_captions": args.no_captions,
             "no_sfx": args.no_sfx,
+            "music": _resolve_music(args.music, _slug(args.topic)),
         },
         out_dir,
     )
@@ -267,6 +284,7 @@ def build_parser() -> argparse.ArgumentParser:
     video_p.add_argument("--formats", default="v", help="v=9:16, h=16:9, vh=les deux")
     video_p.add_argument("--no-captions", action="store_true")
     video_p.add_argument("--no-sfx", action="store_true", help="Désactiver le design sonore")
+    video_p.add_argument("--music", default="auto", help="auto (piste CC0 par défaut) / none / fichier audio")
     video_p.add_argument("--outdir", default="out")
     video_p.set_defaults(func=cmd_video)
 
@@ -281,6 +299,7 @@ def build_parser() -> argparse.ArgumentParser:
     pipe.add_argument("--formats", default="vh")
     pipe.add_argument("--no-captions", action="store_true")
     pipe.add_argument("--no-sfx", action="store_true", help="Désactiver le design sonore")
+    pipe.add_argument("--music", default="auto", help="auto (piste CC0 par défaut) / none / fichier audio")
     pipe.add_argument("--outdir", default="out")
     pipe.set_defaults(func=cmd_pipeline)
 
@@ -295,6 +314,7 @@ def build_parser() -> argparse.ArgumentParser:
     agents_p.add_argument("--formats", default="vh")
     agents_p.add_argument("--no-captions", action="store_true")
     agents_p.add_argument("--no-sfx", action="store_true", help="Désactiver le design sonore")
+    agents_p.add_argument("--music", default="auto", help="auto (piste CC0 par défaut) / none / fichier audio")
     agents_p.add_argument("--outdir", default="out")
     agents_p.set_defaults(func=cmd_agents)
 

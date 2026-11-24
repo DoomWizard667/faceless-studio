@@ -1,5 +1,5 @@
 {
-  "cible": "examples/demo",
+  "cible": "out/l-ascenseur-de-mon-immeuble-s",
   "videos": [
     {
       "fichier": "final_16x9.mp4",
@@ -43,5 +43,5 @@
     }
   ],
   "verdict_global": "VALIDÉ",
-  "genere_le": "2026-11-24T09:33:43"
+  "genere_le": "2026-11-24T10:04:02"
 }
