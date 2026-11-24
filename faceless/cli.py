@@ -8,6 +8,7 @@ from pathlib import Path
 from .config import (
     DEFAULT_STYLE,
     HORIZONTAL,
+    MJ_STYLE_PRESETS,
     VERTICAL,
     load_env,
 )
@@ -104,6 +105,18 @@ def cmd_story(args):
         print(prompt)
 
 
+def _write_mj_prompts(sentences, style: str, out_dir: Path) -> None:
+    base = MJ_STYLE_PRESETS.get(style, MJ_STYLE_PRESETS["dark_cinematic"])
+    lines = []
+    for i, entry in enumerate(sentences):
+        sentence = entry[-1] if isinstance(entry, tuple) else entry
+        excerpt = sentence.strip().strip(".")
+        if len(excerpt) > 90:
+            excerpt = excerpt[:90].rsplit(" ", 1)[0]
+        lines.append(f"{i + 1}. {base} -- {excerpt} --ar 9:16 --style raw --v 7")
+    (out_dir / "midjourney_prompts.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
 def cmd_video(args):
     load_env()
     out_dir = Path(args.outdir)
@@ -125,6 +138,7 @@ def cmd_video(args):
         segments = synthesize(text, voice_path, voice=args.voice_name)
     write_srt(segments["captions"] or segments["sentences"], out_dir / "captions.srt")
     write_srt(segments["sentences"], out_dir / "sentences.srt")
+    _write_mj_prompts(segments["sentences"], args.style, out_dir)
     for label, size in _sizes(args.formats):
         target = VERTICAL if size[1] > size[0] else HORIZONTAL
         output = out_dir / f"final_{label}.mp4"
@@ -160,6 +174,7 @@ def cmd_pipeline(args):
     segments = synthesize(story.text, voice_path, voice=args.voice_name)
     write_srt(segments["captions"] or segments["sentences"], out_dir / "captions.srt")
     write_srt(segments["sentences"], out_dir / "sentences.srt")
+    _write_mj_prompts(segments["sentences"], args.style, out_dir)
     print("[3/4] Images + rendu...")
     for label, size in _sizes(args.formats):
         target = VERTICAL if size[1] > size[0] else HORIZONTAL

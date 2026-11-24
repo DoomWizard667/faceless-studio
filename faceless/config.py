@@ -27,6 +27,10 @@ MJ_STYLE_PRESETS = {
         "night photography, empty corridor, fluorescent flicker, liminal space, "
         "uncanny atmosphere, cinematic still"
     ),
+    "ember": (
+        "cinematic still lit by embers and dying fire, deep rust and amber tones, "
+        "heavy shadows, ominous warm atmosphere, film grain, 35mm photography"
+    ),
 }
 
 
